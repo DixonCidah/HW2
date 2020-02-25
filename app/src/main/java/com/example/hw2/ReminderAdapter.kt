@@ -26,8 +26,8 @@ class ReminderAdapter (context: Context, private val list: List<Reminder>) : Bas
             val readableTime = sdf.format(time)
 
             row.itemTrigger.text = readableTime
-        } else {
-            row.itemTrigger.text = "location"
+        } else if(list[position].location != null){
+            row.itemTrigger.text = list[position].location
         }
 
         return row

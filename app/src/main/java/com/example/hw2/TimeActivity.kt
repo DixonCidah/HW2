@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.room.Room
@@ -20,13 +21,34 @@ class TimeActivity : AppCompatActivity() {
         setContentView(R.layout.activity_time)
 
         time_create.setOnClickListener{
-            val calendar = GregorianCalendar(
+            /*val calendar = GregorianCalendar(
                 datePicker.year,
                 datePicker.month,
                 datePicker.dayOfMonth,
                 timePicker.currentHour,
                 timePicker.currentMinute
-            )
+            )*/
+
+            val calendar = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                GregorianCalendar(
+                    datePicker.year,
+                    datePicker.month,
+                    datePicker.dayOfMonth,
+                    timePicker.hour,
+                    timePicker.minute
+                )
+            } else {
+                GregorianCalendar(
+                    datePicker.year,
+                    datePicker.month,
+                    datePicker.dayOfMonth,
+                    timePicker.currentHour,
+                    timePicker.currentMinute
+                )
+            }
+
+
+            //Log.d("Lab7","picked year is " + datePicker.year)
 
             if((et_message.text.toString() != "") && (calendar.timeInMillis>System.currentTimeMillis())) {
 
@@ -44,25 +66,26 @@ class TimeActivity : AppCompatActivity() {
                         AppDatabase::class.java,
                         "reminders"
                     ).build()
-                    db.reminderDao().insert(reminder)
+                    val uid = db.reminderDao().insert(reminder).toInt()
                     db.close()
 
-                    setAlarm(reminder.time!!, reminder.message)
+                    setAlarm(uid, calendar.timeInMillis, reminder.message)
 
                     finish()
                 }
 
             } else {
-                toast("Wrong data")
+                toast("Reminder cannot be scheduled for the past time and should contain some text")
             }
 
         }
     }
-    private fun setAlarm(time:Long,message:String) {
+    private fun setAlarm(uid: Int, time:Long, message:String) {
         val intent = Intent(this, ReminderReceiver::class.java)
+        intent.putExtra("uid",uid)
         intent.putExtra("message",message)
 
-        val pendingIntent = PendingIntent.getBroadcast(this, 1, intent, PendingIntent.FLAG_ONE_SHOT)
+        val pendingIntent = PendingIntent.getBroadcast(this, uid, intent, PendingIntent.FLAG_ONE_SHOT)
         val manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         manager.setExact(AlarmManager.RTC, time, pendingIntent)
 
